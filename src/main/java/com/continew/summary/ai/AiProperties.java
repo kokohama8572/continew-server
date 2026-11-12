@@ -25,7 +25,7 @@ public record AiProperties(
 	public record Gemini(
 			/** 환경 변수 GEMINI_API_KEY에서 채워집니다. */
 			@DefaultValue("") String apiKey,
-			@DefaultValue("gemini-3.6-flash") String model,
+			@DefaultValue("gemini-3.5-flash-lite") String model,
 			@DefaultValue("https://generativelanguage.googleapis.com") String baseUrl,
 			/** 비워 두면 모델 기본값을 씁니다. MINIMAL, LOW, MEDIUM, HIGH. 기본 모델에만 적용됩니다. */
 			@DefaultValue("") String thinkingLevel,
@@ -33,6 +33,6 @@ public record AiProperties(
 			 * 기본 모델이 과부하(503·429) 등으로 실패하면 이 모델로 한 번 더 시도합니다. 비우면 쓰지 않습니다.
 			 * 결과는 어느 모델이든 SummaryGuard를 거칩니다.
 			 */
-			@DefaultValue("gemini-3.5-flash-lite") String fallbackModel) {
+			@DefaultValue("gemini-3.6-flash") String fallbackModel) {
 	}
 }

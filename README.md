@@ -51,8 +51,8 @@ CONTINEW_SUMMARY_GENERATOR=ai ./gradlew bootRun
 ```
 
 - 키가 없으면 서버가 시작 단계에서 `GEMINI_API_KEY`가 필요하다고 알리며 멈춥니다.
-- 모델은 `continew.summary.ai.gemini.model`(기본 `gemini-3.6-flash`)에서 바꿉니다. Gemini 모델 ID는 자주 바뀌고 오래된 것은 중단되므로 [공식 모델 목록](https://aistudio.google.com/docs/models)을 확인하세요. 생각 수준은 `thinking-level`(MINIMAL~HIGH)로 정하고, 비우면 모델 기본값입니다.
-- 구글이 일시적으로 과부하(503·429 등)일 때는 같은 모델에 한 번 재시도하고, 그래도 안 되면 예비 모델(`fallback-model`, 기본 `gemini-3.5-flash-lite`)로 요약합니다. 전체 시간은 20초 안에서만 씁니다. 모델이 느리면 이 시간을 기본 모델이 다 쓸 수 있습니다.
+- 모델은 `continew.summary.ai.gemini.model`(기본 `gemini-3.5-flash-lite`)에서 바꿉니다. 이 모델은 빠르지만(보통 1.5~2.3초) 글을 어느 묶음에 넣을지가 호출마다 조금 달라질 수 있습니다. 없는 내용이 생기거나 글이 사라지지는 않는데, `SummaryGuard`가 막기 때문입니다. Gemini 모델 ID는 자주 바뀌고 오래된 것은 중단되므로 [공식 모델 목록](https://aistudio.google.com/docs/models)을 확인하세요. 생각 수준은 `thinking-level`(MINIMAL~HIGH)로 정하고, 비우면 모델 기본값입니다.
+- 구글이 일시적으로 과부하(503·429 등)일 때는 같은 모델에 한 번 재시도하고, 그래도 안 되면 예비 모델(`fallback-model`, 기본 `gemini-3.6-flash`)로 요약합니다. 예비 모델은 더 능력 있지만 느립니다(10초 이상 걸릴 수 있음). 전체 시간은 20초 안에서만 씁니다. 모델이 느리면 이 시간을 기본 모델이 다 쓸 수 있습니다.
 - Claude를 쓰려면 `CONTINEW_SUMMARY_AI_PROVIDER=anthropic`과 `ANTHROPIC_API_KEY`를 설정합니다(기본 `claude-opus-5-5`, 설정은 `continew.summary.ai.anthropic.*`).
 - 타임아웃(기본 20초)과 최대 출력 토큰은 `continew.summary.ai.*`에서 바꿉니다.
 - 키는 설정 파일에 적지 않고 환경 변수로만 읽으며, Gemini 키는 주소가 아니라 `x-goog-api-key` 헤더로 보냅니다.
