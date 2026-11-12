@@ -1,6 +1,9 @@
 spring:
   application:
     name: continew
+  jackson:
+    # 명세서 6.3의 요약 응답 구조(source_ids, original_phrase 등)에 맞춰 snake_case를 씁니다.
+    property-naming-strategy: SNAKE_CASE
 
 server:
   port: 8080
@@ -15,7 +18,24 @@ management:
       probes:
         enabled: true
 
-# 개인 메모·공유 글 원문이 서버 로그에 남지 않도록 기본 로그 레벨을 낮게 유지합니다. (명세서 F-05-6c)
+continew:
+  summary:
+    # 하루 요약 요청 상한 (F-05-6f)
+    daily-limit: 20
+    # 범위 안 글이 이 수를 넘으면 기간을 줄이도록 안내 (6.2 실패·예외 처리)
+    max-items: 300
+    # 글이 이 수 이하면 요약하지 않고 원문 목록만 돌려줌 (F-05-2j)
+    originals-only-threshold: 3
+    # 묶음당 항목 수, 대화 요약 줄 수, 항목당 글자 수 상한 (F-05-2d)
+    max-per-group: 5
+    max-conversation-lines: 5
+    max-text-length: 60
+    zone: Asia/Seoul
+    # structured: AI 호출 없이 구조화된 필드만으로 정리. 처리 위치(열린 질문 Q3) 확정 후 AI 구현체로 교체합니다.
+    generator: structured
+
+# 개인 메모·공유 글 원문이 서버 로그에 남지 않도록 합니다. (F-05-6c)
+# 요청·응답 본문을 로그에 남기는 코드와 설정을 추가하지 않습니다.
 logging:
   level:
     root: INFO
