@@ -7,6 +7,7 @@
 ## 문서
 
 - [기능 명세서](spec/continew-feature-spec.md)
+- [프론트엔드 API 연동 가이드](docs/frontend-api-guide.md)
 
 ## 요구 사항
 
