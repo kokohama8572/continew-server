@@ -72,13 +72,15 @@ public class SummaryGuard {
 			if (sources.isEmpty()) {
 				continue;
 			}
-			DateConfidence confidence = eventDateConfidence(e, sources, byId);
-			if (confidence == null || forbiddenOrUngrounded(e.title(), sources, byId)) {
+			DateCheck check = checkEventDate(e, sources, byId);
+			if (check == null || forbiddenOrUngrounded(e.title(), sources, byId)) {
 				needs.addAll(sources);
 				continue;
 			}
-			DateConfidence merged = e.dateConfidence() == DateConfidence.LOW ? DateConfidence.LOW : confidence;
-			events.add(new Event(truncate(e.title()), e.date(), e.time(), e.originalPhrase(), merged, sources));
+			DateConfidence merged = e.dateConfidence() == DateConfidence.LOW ? DateConfidence.LOW : check.confidence();
+			// 시각이 원문에서 확인되지 않으면 시각은 빼고 날짜 확인 필요로 보여 줍니다(F-05-5a).
+			events.add(new Event(truncate(e.title()), e.date(), check.timeOk() ? e.time() : null, e.originalPhrase(),
+					merged, sources));
 		}
 
 		List<Todo> todos = new ArrayList<>();
@@ -141,8 +143,14 @@ public class SummaryGuard {
 
 	// ---- 날짜 ----
 
-	/** HIGH: 원문의 일정 시각과 일치 / LOW: 원문 표현만으로 연결 / null: 근거 없음. */
-	private DateConfidence eventDateConfidence(Event e, List<String> sources, Map<String, SourceItem> byId) {
+	private record DateCheck(DateConfidence confidence, boolean timeOk) {
+	}
+
+	/**
+	 * HIGH: 원문의 일정 시각과 일치하거나, '오늘·내일·모레'를 작성일 기준으로 계산한 값과 일치 /
+	 * LOW: 원문 표현만으로 연결 / null: 근거 없음.
+	 */
+	private DateCheck checkEventDate(Event e, List<String> sources, Map<String, SourceItem> byId) {
 		if (e.date() == null) {
 			return null;
 		}
@@ -156,17 +164,42 @@ public class SummaryGuard {
 			boolean sameTime = e.time() == null
 					|| local.toLocalTime().truncatedTo(ChronoUnit.MINUTES).equals(e.time().truncatedTo(ChronoUnit.MINUTES));
 			if (sameDate && sameTime) {
-				return DateConfidence.HIGH;
+				return new DateCheck(DateConfidence.HIGH, true);
 			}
 		}
-		if (e.originalPhrase() != null && !e.originalPhrase().isBlank()) {
+		String phrase = e.originalPhrase();
+		if (phrase != null && !phrase.isBlank()) {
 			for (String id : sources) {
-				if (sourceText(byId.get(id)).contains(e.originalPhrase())) {
-					return DateConfidence.LOW;
+				SourceItem item = byId.get(id);
+				String text = sourceText(item);
+				if (!text.contains(phrase)) {
+					continue;
 				}
+				boolean timeOk = e.time() == null || timeAppears(e.time(), text);
+				boolean dateOk = item.createdAt() != null && RelativeDates
+						.resolve(phrase, item.createdAt().atZoneSameInstant(props.zone()).toLocalDate())
+						.filter(e.date()::equals).isPresent();
+				return new DateCheck(dateOk && timeOk ? DateConfidence.HIGH : DateConfidence.LOW, timeOk);
 			}
 		}
 		return null;
+	}
+
+	/** 시각의 시·분 숫자가 원문에 나오는지 확인합니다. 12시간제('2시')와 24시간제('14시')를 모두 허용합니다. */
+	private static boolean timeAppears(LocalTime time, String text) {
+		Set<String> digits = new HashSet<>();
+		Matcher m = DIGITS.matcher(text);
+		while (m.find()) {
+			digits.add(m.group());
+		}
+		int hour = time.getHour();
+		int hour12 = hour % 12 == 0 ? 12 : hour % 12;
+		boolean hourOk = digits.contains(Integer.toString(hour)) || digits.contains(Integer.toString(hour12))
+				|| digits.contains(String.format("%02d", hour));
+		int minute = time.getMinute();
+		boolean minuteOk = minute == 0 || digits.contains(Integer.toString(minute))
+				|| digits.contains(String.format("%02d", minute));
+		return hourOk && minuteOk;
 	}
 
 	private boolean dueMatches(LocalDate due, List<String> sources, Map<String, SourceItem> byId) {

@@ -48,6 +48,8 @@ public record SummaryRequest(
 			@Size(max = 5000) String body,
 			@Size(max = 40) String authorLabel,
 			OffsetDateTime eventAt,
-			OffsetDateTime dueAt) {
+			OffsetDateTime dueAt,
+			/** 글이 올라온 시각. '내일' 같은 상대 날짜를 원글 작성일 기준으로 바꾸는 데 씁니다(6.1). */
+			OffsetDateTime createdAt) {
 	}
 }

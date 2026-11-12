@@ -34,11 +34,15 @@ class SummaryGuardTest {
 	private final SummaryGuard guard = new SummaryGuard(props);
 
 	private static SourceItem post(String id, PostType type, String title, String body, OffsetDateTime eventAt) {
-		return new SourceItem(id, Kind.POST, type, title, body, null, eventAt, null);
+		return new SourceItem(id, Kind.POST, type, title, body, null, eventAt, null, null);
 	}
 
 	private static SourceItem message(String id, String body, String author) {
-		return new SourceItem(id, Kind.MESSAGE, null, null, body, author, null, null);
+		return message(id, body, author, null);
+	}
+
+	private static SourceItem message(String id, String body, String author, OffsetDateTime createdAt) {
+		return new SourceItem(id, Kind.MESSAGE, null, null, body, author, null, null, createdAt);
 	}
 
 	private static SummaryRequest request(SourceItem... items) {
@@ -138,6 +142,45 @@ class SummaryGuardTest {
 				LocalTime.of(14, 0), "내일 2시", DateConfidence.HIGH, List.of("m1"))), List.of(), List.of(), List.of()));
 
 		assertThat(result.events()).hasSize(1);
+		assertThat(result.events().get(0).dateConfidence()).isEqualTo(DateConfidence.LOW);
+	}
+
+	@Test
+	void 내일_같은_표현은_작성일_기준으로_계산한_날짜와_맞으면_high다() {
+		OffsetDateTime written = OffsetDateTime.parse("2026-11-12T10:00:00+09:00");
+		SummaryRequest req = request(message("m1", "치과는 내일 2시에 가기로 함", "작성자1", written));
+
+		SummaryResponse result = guard.apply(req, draft(List.of(new Event("치과", LocalDate.of(2026, 11, 13),
+				LocalTime.of(14, 0), "내일 2시", DateConfidence.HIGH, List.of("m1"))), List.of(), List.of(), List.of()));
+
+		assertThat(result.events()).hasSize(1);
+		assertThat(result.events().get(0).dateConfidence()).isEqualTo(DateConfidence.HIGH);
+		assertThat(result.events().get(0).time()).isEqualTo(LocalTime.of(14, 0));
+	}
+
+	@Test
+	void 모델이_계산한_날짜가_작성일_기준과_다르면_low로_낮춘다() {
+		OffsetDateTime written = OffsetDateTime.parse("2026-11-12T10:00:00+09:00");
+		SummaryRequest req = request(message("m1", "치과는 내일 2시에 가기로 함", "작성자1", written));
+
+		// 내일이면 11/13인데 모델이 11/14로 계산
+		SummaryResponse result = guard.apply(req, draft(List.of(new Event("치과", LocalDate.of(2026, 11, 14),
+				LocalTime.of(14, 0), "내일 2시", DateConfidence.HIGH, List.of("m1"))), List.of(), List.of(), List.of()));
+
+		assertThat(result.events()).hasSize(1);
+		assertThat(result.events().get(0).dateConfidence()).isEqualTo(DateConfidence.LOW);
+	}
+
+	@Test
+	void 원문에서_확인되지_않는_시각은_빼고_low로_표시한다() {
+		OffsetDateTime written = OffsetDateTime.parse("2026-11-12T10:00:00+09:00");
+		SummaryRequest req = request(message("m1", "치과는 내일 가기로 함", "작성자1", written));
+
+		SummaryResponse result = guard.apply(req, draft(List.of(new Event("치과", LocalDate.of(2026, 11, 13),
+				LocalTime.of(15, 30), "내일", DateConfidence.HIGH, List.of("m1"))), List.of(), List.of(), List.of()));
+
+		assertThat(result.events()).hasSize(1);
+		assertThat(result.events().get(0).time()).isNull();
 		assertThat(result.events().get(0).dateConfidence()).isEqualTo(DateConfidence.LOW);
 	}
 

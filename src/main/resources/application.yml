@@ -31,8 +31,16 @@ continew:
     max-conversation-lines: 5
     max-text-length: 60
     zone: Asia/Seoul
-    # structured: AI 호출 없이 구조화된 필드만으로 정리. 처리 위치(열린 질문 Q3) 확정 후 AI 구현체로 교체합니다.
+    # structured: AI 호출 없이 구조화된 필드만으로 정리 (기본, API 키 불필요)
+    # ai: Claude로 요약. 환경 변수 ANTHROPIC_API_KEY가 필요합니다. 예) CONTINEW_SUMMARY_GENERATOR=ai
+    # 어느 쪽이든 결과는 SummaryGuard 검사를 거칩니다.
     generator: structured
+    ai:
+      model: claude-opus-5-5
+      effort: medium
+      max-tokens: 16000
+      # 20초를 넘기면 실패 처리 (6.2)
+      timeout-seconds: 20
 
 # 개인 메모·공유 글 원문이 서버 로그에 남지 않도록 합니다. (F-05-6c)
 # 요청·응답 본문을 로그에 남기는 코드와 설정을 추가하지 않습니다.
