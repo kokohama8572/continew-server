@@ -196,6 +196,31 @@ class SummaryGuardTest {
 	}
 
 	@Test
+	void 메모_글은_주의사항에_넣지_못한다() {
+		SummaryRequest req = request(post("p1", PostType.NOTE, "냉장고에 우유 있음", null, null));
+
+		SummaryResponse result = guard.apply(req, cautions(new Caution("냉장고에 우유 있음", List.of("p1"))));
+
+		assertThat(result.cautions()).isEmpty();
+		assertThat(result.needsOriginal()).containsExactly("p1");
+	}
+
+	@Test
+	void 모레까지_같은_상대_마감일은_작성일_기준이_맞으면_할_일로_인정한다() {
+		OffsetDateTime written = OffsetDateTime.parse("2026-11-12T09:40:00+09:00");
+		SummaryRequest req = request(message("m1", "모레까지 도서관 책 반납해야 해", "작성자2", written));
+
+		SummaryResponse ok = guard.apply(req, draft(List.of(),
+				List.of(new Todo("도서관 책 반납", LocalDate.of(2026, 11, 14), List.of("m1"))), List.of(), List.of()));
+		SummaryResponse wrong = guard.apply(req, draft(List.of(),
+				List.of(new Todo("도서관 책 반납", LocalDate.of(2026, 11, 20), List.of("m1"))), List.of(), List.of()));
+
+		assertThat(ok.todos()).hasSize(1);
+		assertThat(wrong.todos()).isEmpty();
+		assertThat(wrong.needsOriginal()).containsExactly("m1");
+	}
+
+	@Test
 	void 요청에_없는_작성자_표기는_빼고_있는_것만_남긴다() {
 		SummaryRequest req = request(message("m1", "주말 일정은 아직 안 정함", "작성자2"));
 

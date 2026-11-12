@@ -36,6 +36,8 @@ import tools.jackson.databind.json.JsonMapper;
 @ConditionalOnProperty(name = "continew.summary.generator", havingValue = "ai")
 public class AiSummaryGenerator implements SummaryGenerator {
 
+	private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AiSummaryGenerator.class);
+
 	private final AiTextClient ai;
 	private final JsonMapper mapper;
 	private final SummaryProperties props;
@@ -105,14 +107,25 @@ public class AiSummaryGenerator implements SummaryGenerator {
 		int start = text.indexOf('{');
 		int end = text.lastIndexOf('}');
 		if (start < 0 || end <= start) {
+			log.warn("AI 응답에서 JSON을 찾지 못함 (응답 길이 {}자)", text.length());
 			throw unavailable();
 		}
 		try {
 			return mapper.readValue(text.substring(start, end + 1), ModelOutput.class);
 		} catch (RuntimeException e) {
-			// 파싱 오류 메시지에는 모델이 쓴 글 조각이 담길 수 있어 그대로 남기지 않습니다.
+			// 오류 메시지에는 모델이 쓴 글 조각이 담길 수 있어 남기지 않습니다. 예외 종류와 필드 경로만 남깁니다.
+			log.warn("AI 응답 해석 실패: {} (경로 {})", e.getClass().getSimpleName(), fieldPath(e));
 			throw unavailable();
 		}
+	}
+
+	/** 어느 필드에서 해석이 실패했는지만 알려 줍니다. 값은 포함하지 않습니다. */
+	private static String fieldPath(RuntimeException e) {
+		if (e instanceof tools.jackson.core.JacksonException je) {
+			return je.getPath().stream().map(r -> r.getPropertyName() != null ? r.getPropertyName() : "[" + r.getIndex() + "]")
+					.collect(java.util.stream.Collectors.joining("."));
+		}
+		return "?";
 	}
 
 	private static SummaryException unavailable() {

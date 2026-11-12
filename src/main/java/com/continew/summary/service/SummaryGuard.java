@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 
 import com.continew.summary.SummaryProperties;
 import com.continew.summary.api.SummaryRequest;
+import com.continew.summary.api.SummaryRequest.PostType;
 import com.continew.summary.api.SummaryRequest.SourceItem;
 import com.continew.summary.api.SummaryResponse;
 import com.continew.summary.api.SummaryResponse.Caution;
@@ -102,7 +103,9 @@ public class SummaryGuard {
 			if (sources.isEmpty()) {
 				continue;
 			}
-			if (forbiddenOrUngrounded(c.text(), sources, byId)) {
+			// 메모(note) 글은 주의사항이 아닙니다. 모델이 분류를 어기면 원문 확인으로 돌립니다.
+			boolean fromNote = sources.stream().anyMatch(id -> byId.get(id).postType() == PostType.NOTE);
+			if (fromNote || forbiddenOrUngrounded(c.text(), sources, byId)) {
 				needs.addAll(sources);
 				continue;
 			}
@@ -207,8 +210,15 @@ public class SummaryGuard {
 			return true;
 		}
 		for (String id : sources) {
-			OffsetDateTime at = byId.get(id).dueAt();
+			SourceItem item = byId.get(id);
+			OffsetDateTime at = item.dueAt();
 			if (at != null && at.atZoneSameInstant(props.zone()).toLocalDate().equals(due)) {
+				return true;
+			}
+			// '모레까지'처럼 본문의 상대 표현이 작성일 기준으로 계산한 날짜와 같으면 인정합니다.
+			if (item.createdAt() != null && RelativeDates
+					.resolve(sourceText(item), item.createdAt().atZoneSameInstant(props.zone()).toLocalDate())
+					.filter(due::equals).isPresent()) {
 				return true;
 			}
 		}

@@ -23,8 +23,10 @@ final class SummaryPrompt {
 			   - todos: 해야 할 일.
 			   - cautions: 주의사항.
 			   - conversation: 대화 주요 내용. 메시지(kind=message)를 줄여 씁니다.
-			   post_type이 event/todo/caution인 게시물은 해당 묶음에 넣습니다. 메시지나 note에 일정·할 일이 \
-			분명히 적혀 있으면 events/todos에 넣어도 됩니다.
+			   post_type이 event/todo/caution인 게시물은 같은 이름의 묶음에 넣습니다. post_type이 note인 게시물은 \
+			cautions에 넣지 않습니다. 일정·할 일이 분명히 적혀 있으면 events/todos에, 아니면 needs_original에 넣습니다.
+			   메시지에 날짜나 시각이 있는 약속·일정이 적혀 있으면 events에 넣고 conversation에는 같은 내용을 \
+			다시 쓰지 않습니다. 그 밖의 메시지는 conversation에 줄여 씁니다.
 			6. 묶음당 5개 이하, conversation은 5줄 이하로 씁니다. 항목 하나는 60자 이하로 짧게 씁니다.
 			7. '내일', '모레' 같은 상대 표현은 그 글의 created_at 날짜를 기준으로 date를 계산하고, 원문 표현을 \
 			original_phrase에 그대로 적습니다. 확실하면 date_confidence를 "high", 조금이라도 불확실하면 "low"로 \

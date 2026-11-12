@@ -5,7 +5,7 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -25,7 +25,7 @@ import com.continew.summary.service.SummaryException;
  * <p>글 내용과 응답은 로그에 남기지 않습니다. 실패 로그에는 예외 종류만 적습니다(F-05-6c).
  */
 @Component
-@ConditionalOnProperty(name = "continew.summary.generator", havingValue = "ai")
+@ConditionalOnExpression("'${continew.summary.generator:structured}' == 'ai' and '${continew.summary.ai.provider:gemini}' == 'anthropic'")
 class AnthropicTextClient implements AiTextClient {
 
 	private static final Logger log = LoggerFactory.getLogger(AnthropicTextClient.class);
@@ -46,10 +46,10 @@ class AnthropicTextClient implements AiTextClient {
 	@Override
 	public AiReply complete(String system, String user) {
 		MessageCreateParams params = MessageCreateParams.builder()
-				.model(props.model())
+				.model(props.anthropic().model())
 				.maxTokens(props.maxTokens())
 				.system(system)
-				.outputConfig(OutputConfig.builder().effort(OutputConfig.Effort.of(props.effort())).build())
+				.outputConfig(OutputConfig.builder().effort(OutputConfig.Effort.of(props.anthropic().effort())).build())
 				.addUserMessage(user)
 				.build();
 		Message response;
