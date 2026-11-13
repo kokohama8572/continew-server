@@ -6,7 +6,10 @@ spring:
     property-naming-strategy: SNAKE_CASE
 
 server:
-  port: 8080
+  # 호스팅(Render, Railway 등)이 PORT 환경 변수로 포트를 정해 줍니다.
+  port: ${PORT:8080}
+  # 프록시 뒤에서 실제 요청 주소·프로토콜(X-Forwarded-*)을 읽습니다.
+  forward-headers-strategy: framework
 
 management:
   endpoints:
@@ -19,6 +22,11 @@ management:
         enabled: true
 
 continew:
+  cors:
+    # 브라우저에서 이 서버를 부를 수 있는 프론트 주소(쉼표로 여러 개). 비우면 CORS를 열지 않습니다.
+    # 배포 환경에서는 환경 변수로 넣습니다. 예) CONTINEW_CORS_ALLOWED_ORIGINS=https://continew-web.vercel.app
+    # 개발 중 Vite 프록시(/api)를 쓰면 필요 없습니다.
+    allowed-origins:
   summary:
     # 하루 요약 요청 상한 (F-05-6f)
     daily-limit: 20

@@ -2,6 +2,7 @@ package com.continew.summary.ratelimit;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.cors.CorsUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import com.continew.summary.service.SummaryException;
@@ -23,6 +24,10 @@ public class DailyLimitInterceptor implements HandlerInterceptor {
 
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+		// 브라우저의 CORS 사전 확인(OPTIONS)은 사용자 헤더를 달고 오지 않으므로 상한 검사 대상이 아닙니다.
+		if (CorsUtils.isPreFlightRequest(request)) {
+			return true;
+		}
 		String id = request.getHeader(HEADER);
 		if (id == null || id.isBlank() || id.length() > MAX_ID_LENGTH) {
 			throw new SummaryException(HttpStatus.BAD_REQUEST, "MISSING_INSTALLATION_ID",
