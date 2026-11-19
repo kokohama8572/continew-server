@@ -31,7 +31,7 @@ class SummaryGuardTest {
 	private static final OffsetDateTime FROM = OffsetDateTime.parse("2026-11-09T21:00:00+09:00");
 	private static final OffsetDateTime TO = OffsetDateTime.parse("2026-11-12T15:00:00+09:00");
 
-	private final SummaryProperties props = new SummaryProperties(20, 300, 3, 5, 5, 60, ZoneId.of("Asia/Seoul"));
+	private final SummaryProperties props = new SummaryProperties(20, 300, 3, 5, 5, 60, 400, ZoneId.of("Asia/Seoul"));
 	/** 테스트 속 '지금'은 2026-11-12 10:00(한국 시간)으로 고정합니다. */
 	private static final Clock NOW = Clock.fixed(OffsetDateTime.parse("2026-11-12T10:00:00+09:00").toInstant(),
 			ZoneId.of("Asia/Seoul"));
@@ -337,5 +337,44 @@ class SummaryGuardTest {
 		SummaryResponse result = guard.apply(req, cautions(new Caution(longText, List.of("p1"))));
 
 		assertThat(result.cautions().get(0).text()).hasSize(60).endsWith("…");
+	}
+
+	// ---- 줄글 ----
+
+	private static SummaryResponse withText(String text) {
+		return new SummaryResponse(new Range(Scope.SHARED, FROM, TO), List.of(), List.of(), List.of(), List.of(),
+				List.of(), text);
+	}
+
+	@Test
+	void 줄글은_근거가_있으면_그대로_통과하고_줄바꿈은_공백으로_바꾼다() {
+		SummaryRequest req = request(message("m1", "내일 3층 회의실에서 회의해요", "작성자1"));
+
+		SummaryResponse result = guard.apply(req, withText("3층 회의실에서\n회의가 있어요."));
+
+		assertThat(result.summaryText()).isEqualTo("3층 회의실에서 회의가 있어요.");
+	}
+
+	@Test
+	void 줄글에_원문에_없는_숫자가_있으면_버린다() {
+		SummaryRequest req = request(message("m1", "내일 3층 회의실에서 회의해요", "작성자1"));
+
+		assertThat(guard.apply(req, withText("5층 회의실에서 회의가 있어요.")).summaryText()).isNull();
+	}
+
+	@Test
+	void 줄글에_금지_표현이_있으면_버린다() {
+		SummaryRequest req = request(message("m1", "너무 힘들어", "작성자1"));
+
+		assertThat(guard.apply(req, withText("작성자1은 우울해 보입니다.")).summaryText()).isNull();
+	}
+
+	@Test
+	void 줄글이_너무_길거나_비어_있으면_버린다() {
+		SummaryRequest req = request(message("m1", "안녕", "작성자1"));
+
+		assertThat(guard.apply(req, withText("가".repeat(401))).summaryText()).isNull();
+		assertThat(guard.apply(req, withText("  ")).summaryText()).isNull();
+		assertThat(guard.apply(req, withText(null)).summaryText()).isNull();
 	}
 }

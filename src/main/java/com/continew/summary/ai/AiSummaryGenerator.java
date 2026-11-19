@@ -60,7 +60,7 @@ public class AiSummaryGenerator implements SummaryGenerator {
 		}
 		ModelOutput out = parse(reply.text());
 		return new SummaryResponse(range, out.events(), out.todos(), out.cautions(), out.conversation(),
-				out.needsOriginal());
+				out.needsOriginal(), out.summaryText());
 	}
 
 	// ---- 입력 ----
@@ -99,7 +99,7 @@ public class AiSummaryGenerator implements SummaryGenerator {
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	record ModelOutput(List<Event> events, List<Todo> todos, List<Caution> cautions,
-			List<ConversationLine> conversation, List<String> needsOriginal) {
+			List<ConversationLine> conversation, List<String> needsOriginal, String summaryText) {
 	}
 
 	private ModelOutput parse(String text) {

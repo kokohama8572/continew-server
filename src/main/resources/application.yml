@@ -41,6 +41,7 @@ continew:
     max-per-group: 5
     max-conversation-lines: 5
     max-text-length: 60
+    max-summary-text-length: 400
     zone: Asia/Seoul
     # structured: AI 호출 없이 구조화된 필드만으로 정리 (기본, API 키 불필요)
     # ai: AI로 요약. 아래 provider의 API 키가 필요합니다. 예) CONTINEW_SUMMARY_GENERATOR=ai

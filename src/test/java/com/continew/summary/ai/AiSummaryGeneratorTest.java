@@ -31,7 +31,7 @@ class AiSummaryGeneratorTest {
 	private static final OffsetDateTime FROM = OffsetDateTime.parse("2026-11-09T21:00:00+09:00");
 	private static final OffsetDateTime TO = OffsetDateTime.parse("2026-11-12T15:00:00+09:00");
 
-	private final SummaryProperties props = new SummaryProperties(20, 300, 3, 5, 5, 60, ZoneId.of("Asia/Seoul"));
+	private final SummaryProperties props = new SummaryProperties(20, 300, 3, 5, 5, 60, 400, ZoneId.of("Asia/Seoul"));
 	private final JsonMapper mapper = JsonMapper.builder()
 			.propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE).build();
 

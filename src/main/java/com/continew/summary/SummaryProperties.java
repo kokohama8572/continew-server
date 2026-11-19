@@ -13,5 +13,6 @@ public record SummaryProperties(
 		@DefaultValue("5") int maxPerGroup,
 		@DefaultValue("5") int maxConversationLines,
 		@DefaultValue("60") int maxTextLength,
+		@DefaultValue("400") int maxSummaryTextLength,
 		@DefaultValue("Asia/Seoul") ZoneId zone) {
 }

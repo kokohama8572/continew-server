@@ -84,7 +84,8 @@ contiNEW 서버의 AI 요약 API를 앱에서 쓰는 방법입니다. 기능 규
   "conversation": [
     {"text": "주말 일정은 아직 정하지 않음", "author_labels": ["작성자2"], "source_ids": ["msg_8"]}
   ],
-  "needs_original": ["msg_7", "post_9"]
+  "needs_original": ["msg_7", "post_9"],
+  "summary_text": "11월 20일 오전 10시에 팀 회의가 있고, 회의 자료는 공유 폴더에 있어요. 주말 일정은 아직 정해지지 않았어요."
 }
 ```
 
@@ -97,6 +98,7 @@ contiNEW 서버의 AI 요약 API를 앱에서 쓰는 방법입니다. 기능 규
 | `todos[]` | 해야 할 일. `due`는 `YYYY-MM-DD` 또는 `null` |
 | `cautions[]` | 주의사항 |
 | `conversation[]` | 대화 주요 내용. `author_labels`는 요청에 보낸 가명 그대로 옵니다 |
+| `summary_text` | 항목을 이어 쓴 **줄글 한 단락**(400자 이하)입니다. 서버가 금지 표현·근거 없는 숫자를 검사하고, 통과하지 못하면 `null`입니다. 값이 있으면 이 문단을 먼저 보여 주고 그 아래에 항목들의 `source_ids`를 모은 "원문 보기" 목록을 두세요. `null`이면 기존처럼 항목별로 보여 주세요. 규칙 기반(`structured`) 생성기에서는 항상 `null`입니다 |
 | `needs_original[]` | 요약하지 못했거나 확신할 수 없는 글의 id. **"원문 확인 필요"로 원문 링크만** 보여 주세요 |
 
 **알아 둘 점**
@@ -206,6 +208,7 @@ type SummaryResponse = {
   cautions: { text: string; source_ids: string[] }[];
   conversation: { text: string; author_labels: string[]; source_ids: string[] }[];
   needs_original: string[];
+  summary_text: string | null; // 항목을 이어 쓴 줄글. null이면 항목별 화면으로 보여 주세요
 };
 
 async function summarize(installationId: string, body: SummaryRequest): Promise<SummaryResponse> {

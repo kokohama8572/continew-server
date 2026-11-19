@@ -155,7 +155,21 @@ public class SummaryGuard {
 				capped(todos, props.maxPerGroup(), Todo::sourceIds, needs),
 				capped(cautions, props.maxPerGroup(), Caution::sourceIds, needs),
 				capped(conversation, props.maxConversationLines(), ConversationLine::sourceIds, needs),
-				List.copyOf(needs));
+				List.copyOf(needs),
+				checkedSummaryText(draft.summaryText(), request, byId));
+	}
+
+	/** 줄글은 길이·금지 표현·근거 없는 숫자를 검사하고, 하나라도 걸리면 쓰지 않습니다(항목별 화면으로 대체). */
+	private String checkedSummaryText(String text, SummaryRequest request, Map<String, SourceItem> byId) {
+		if (text == null || text.isBlank()) {
+			return null;
+		}
+		String t = text.strip().replaceAll("\\s*\\R\\s*", " ");
+		if (t.length() > props.maxSummaryTextLength()) {
+			return null;
+		}
+		List<String> all = request.items().stream().map(SourceItem::id).toList();
+		return forbiddenOrUngrounded(t, all, byId) ? null : t;
 	}
 
 	// ---- 출처 ----
