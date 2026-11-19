@@ -2,6 +2,7 @@ package com.continew.summary.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
@@ -31,7 +32,10 @@ class SummaryGuardTest {
 	private static final OffsetDateTime TO = OffsetDateTime.parse("2026-11-12T15:00:00+09:00");
 
 	private final SummaryProperties props = new SummaryProperties(20, 300, 3, 5, 5, 60, ZoneId.of("Asia/Seoul"));
-	private final SummaryGuard guard = new SummaryGuard(props);
+	/** 테스트 속 '지금'은 2026-11-12 10:00(한국 시간)으로 고정합니다. */
+	private static final Clock NOW = Clock.fixed(OffsetDateTime.parse("2026-11-12T10:00:00+09:00").toInstant(),
+			ZoneId.of("Asia/Seoul"));
+	private final SummaryGuard guard = new SummaryGuard(props, NOW);
 
 	private static SourceItem post(String id, PostType type, String title, String body, OffsetDateTime eventAt) {
 		return new SourceItem(id, Kind.POST, type, title, body, null, eventAt, null, null);
@@ -193,6 +197,84 @@ class SummaryGuardTest {
 
 		assertThat(result.todos()).isEmpty();
 		assertThat(result.needsOriginal()).containsExactly("p1");
+	}
+
+	// ---- 지난 일정 제외 (지금은 2026-11-12 10:00) ----
+
+	/** 일정 게시물 하나와, 그 일정을 그대로 옮긴 요약 항목을 만들어 가드에 통과시킵니다. */
+	private SummaryResponse eventsAfterGuard(String... whens) {
+		List<SourceItem> items = new ArrayList<>();
+		List<Event> events = new ArrayList<>();
+		for (int i = 0; i < whens.length; i++) {
+			OffsetDateTime at = OffsetDateTime.parse(whens[i]);
+			items.add(post("p" + i, PostType.EVENT, "일정" + i, null, at));
+			events.add(new Event("일정" + i, at.toLocalDate(), at.toLocalTime(), null, DateConfidence.HIGH,
+					List.of("p" + i)));
+		}
+		return guard.apply(request(items.toArray(SourceItem[]::new)), draft(events, List.of(), List.of(), List.of()));
+	}
+
+	@Test
+	void 지난_일정은_빼고_원문_확인_대상에도_넣지_않는다() {
+		SummaryResponse result = eventsAfterGuard("2026-11-11T17:00:00+09:00", "2026-11-13T14:00:00+09:00");
+
+		assertThat(result.events()).extracting(Event::title).containsExactly("일정1");
+		assertThat(result.needsOriginal()).isEmpty();
+	}
+
+	@Test
+	void 오늘이라도_이미_지난_시각의_일정은_뺀다() {
+		SummaryResponse result = eventsAfterGuard("2026-11-12T09:59:00+09:00", "2026-11-12T10:01:00+09:00");
+
+		assertThat(result.events()).extracting(Event::title).containsExactly("일정1");
+	}
+
+	@Test
+	void 시각이_없는_오늘_일정은_오늘_안에는_남긴다() {
+		// 원문의 일정 시각이 오늘 00:00이고 요약에는 시각 없이 날짜만 있는 종일 일정
+		OffsetDateTime allDay = OffsetDateTime.parse("2026-11-12T00:00:00+09:00");
+		SummaryRequest req = request(post("p1", PostType.EVENT, "종일 행사", null, allDay));
+
+		SummaryResponse today = guard.apply(req, draft(List.of(new Event("종일 행사", LocalDate.of(2026, 11, 12), null,
+				null, DateConfidence.HIGH, List.of("p1"))), List.of(), List.of(), List.of()));
+
+		assertThat(today.events()).extracting(Event::title).containsExactly("종일 행사");
+		assertThat(today.needsOriginal()).isEmpty();
+	}
+
+	@Test
+	void 시각_없는_일정도_날짜가_어제면_뺀다() {
+		OffsetDateTime allDay = OffsetDateTime.parse("2026-11-11T00:00:00+09:00");
+		SummaryRequest req = request(post("p1", PostType.EVENT, "어제 행사", null, allDay));
+
+		SummaryResponse result = guard.apply(req, draft(List.of(new Event("어제 행사", LocalDate.of(2026, 11, 11), null,
+				null, DateConfidence.HIGH, List.of("p1"))), List.of(), List.of(), List.of()));
+
+		assertThat(result.events()).isEmpty();
+		assertThat(result.needsOriginal()).isEmpty();
+	}
+
+	@Test
+	void 일정은_가까운_순으로_정렬한다() {
+		SummaryResponse result = eventsAfterGuard("2026-11-20T10:00:00+09:00", "2026-11-13T09:00:00+09:00",
+				"2026-11-13T08:00:00+09:00");
+
+		assertThat(result.events()).extracting(Event::title).containsExactly("일정2", "일정1", "일정0");
+	}
+
+	@Test
+	void 지난_일정은_묶음_상한에_자리를_차지하지_않는다() {
+		// 지난 일정 3개 + 다가오는 일정 7개 → 다가오는 일정 중 가까운 5개만 남고, 나머지 2개는 원문 확인으로 갑니다
+		SummaryResponse result = eventsAfterGuard(
+				"2026-11-01T10:00:00+09:00", "2026-11-02T10:00:00+09:00", "2026-11-03T10:00:00+09:00",
+				"2026-11-20T10:00:00+09:00", "2026-11-19T10:00:00+09:00", "2026-11-18T10:00:00+09:00",
+				"2026-11-17T10:00:00+09:00", "2026-11-16T10:00:00+09:00", "2026-11-15T10:00:00+09:00",
+				"2026-11-14T10:00:00+09:00");
+
+		assertThat(result.events()).hasSize(5);
+		assertThat(result.events().get(0).date()).isEqualTo(LocalDate.of(2026, 11, 14));
+		assertThat(result.events().get(4).date()).isEqualTo(LocalDate.of(2026, 11, 18));
+		assertThat(result.needsOriginal()).containsExactlyInAnyOrder("p3", "p4");
 	}
 
 	@Test

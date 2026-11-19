@@ -1,10 +1,13 @@
 package com.continew.summary.service;
 
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -35,6 +38,7 @@ import com.continew.summary.api.SummaryResponse.Todo;
  *   <li>원문에 없는 날짜·숫자가 있으면 그 항목을 뺍니다(F-05-5a).
  *   <li>금지 표현이 있으면 그 줄을 원문 확인({@code needs_original})으로 바꿉니다(F-05-5b).
  *   <li>묶음당 항목 수와 글자 수 상한을 지키고, 넘치는 글은 원문 확인으로 돌립니다(F-05-2d).
+ *   <li>'다가오는 일정'에서 이미 지난 일정은 빼고, 남은 일정은 가까운 순으로 정렬합니다(F-05-2c).
  * </ul>
  *
  * 빠진 항목의 출처 id는 {@code needs_original}에 모아, 앱이 '원문 확인 필요' 링크로 보여 줍니다(F-05-5c).
@@ -45,9 +49,21 @@ public class SummaryGuard {
 	private static final Pattern DIGITS = Pattern.compile("\\d+");
 
 	private final SummaryProperties props;
+	private final Clock clock;
 
-	public SummaryGuard(SummaryProperties props) {
+	public SummaryGuard(SummaryProperties props, Clock clock) {
 		this.props = props;
+		this.clock = clock;
+	}
+
+	/**
+	 * 일정이 이미 지났는지. 시각이 있으면 그 시각이, 없으면 그날이 끝나는 시점이 지금보다 앞설 때 지난 일정입니다.
+	 * 그래서 오늘 날짜의 시각 없는 일정은 오늘 안에는 '다가오는 일정'으로 남습니다.
+	 */
+	private boolean isPast(LocalDate date, LocalTime time) {
+		LocalDateTime now = LocalDateTime.now(clock.withZone(props.zone()));
+		LocalDateTime end = time != null ? date.atTime(time) : date.atTime(LocalTime.MAX);
+		return end.isBefore(now);
 	}
 
 	public SummaryResponse apply(SummaryRequest request, SummaryResponse draft) {
@@ -80,9 +96,16 @@ public class SummaryGuard {
 			}
 			DateConfidence merged = e.dateConfidence() == DateConfidence.LOW ? DateConfidence.LOW : check.confidence();
 			// 시각이 원문에서 확인되지 않으면 시각은 빼고 날짜 확인 필요로 보여 줍니다(F-05-5a).
-			events.add(new Event(truncate(e.title()), e.date(), check.timeOk() ? e.time() : null, e.originalPhrase(),
-					merged, sources));
+			LocalTime time = check.timeOk() ? e.time() : null;
+			// '다가오는 일정'이므로 이미 지난 일정은 뺍니다. 원문 확인 대상도 아니라서 needs_original에 넣지 않습니다.
+			if (isPast(e.date(), time)) {
+				continue;
+			}
+			events.add(new Event(truncate(e.title()), e.date(), time, e.originalPhrase(), merged, sources));
 		}
+		// 가까운 일정이 먼저 오게 하고, 묶음당 상한(5개)에 걸릴 때도 가까운 일정이 남게 합니다.
+		events.sort(Comparator.comparing(Event::date)
+				.thenComparing(Event::time, Comparator.nullsLast(Comparator.naturalOrder())));
 
 		List<Todo> todos = new ArrayList<>();
 		for (Todo t : nullSafe(draft.todos())) {

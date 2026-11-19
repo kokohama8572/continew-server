@@ -157,7 +157,8 @@ class AiSummaryGeneratorTest {
 				"""));
 		SummaryRequest req = request();
 
-		SummaryResponse result = new SummaryGuard(props).apply(req, generator(client).generate(req));
+		SummaryResponse result = new SummaryGuard(props, java.time.Clock.fixed(OffsetDateTime.parse("2026-11-12T10:00:00+09:00").toInstant(),
+				ZoneId.of("Asia/Seoul"))).apply(req, generator(client).generate(req));
 
 		assertThat(result.cautions()).isEmpty();
 		assertThat(result.needsOriginal()).containsExactlyInAnyOrder("post_1", "msg_2");
