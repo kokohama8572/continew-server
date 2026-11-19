@@ -23,5 +23,8 @@ COPY --from=build /app/build/libs/*.jar app.jar
 # 호스팅이 PORT를 정해 주면 그 값을 쓰고, 없으면 8080입니다(application.yml).
 EXPOSE 8080
 
+# 서버는 기본으로 127.0.0.1에서만 듣습니다. 컨테이너 안에서는 밖에서 들어오는 연결을 받아야 하므로 엽니다.
+ENV SERVER_ADDRESS=0.0.0.0
+
 # 컨테이너 메모리의 75%까지만 힙으로 씁니다(무료 플랜의 작은 메모리에서 강제 종료를 피하기 위함).
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "app.jar"]

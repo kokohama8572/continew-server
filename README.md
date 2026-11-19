@@ -20,6 +20,7 @@
 ./gradlew bootRun
 ```
 
+- 서버는 기본으로 이 컴퓨터에서만 접속됩니다(`127.0.0.1`). 폰 등 같은 네트워크의 다른 기기에서 쓰려면 `SERVER_ADDRESS=0.0.0.0 ./gradlew bootRun`으로 띄웁니다.
 - 상태 확인: http://localhost:8080/actuator/health
 - API 문서(Swagger UI): http://localhost:8080/swagger-ui/index.html
 

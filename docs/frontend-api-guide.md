@@ -14,7 +14,7 @@ contiNEW 서버의 AI 요약 API를 앱에서 쓰는 방법입니다. 기능 규
 | 로컬 서버 (macOS) | `http://localhost:8080` |
 | iOS 시뮬레이터 | `http://localhost:8080` (같은 맥의 서버에 그대로 닿습니다) |
 | Android 에뮬레이터 | `http://10.0.2.2:8080` |
-| 실제 기기 | 맥의 같은 네트워크 IP, 예: `http://192.168.0.10:8080` |
+| 실제 기기 | 맥의 같은 네트워크 IP, 예: `http://192.168.0.10:8080`. 서버는 기본으로 이 컴퓨터에서만 열리므로 `SERVER_ADDRESS=0.0.0.0`을 붙여 띄워야 합니다 |
 | API 문서(Swagger UI) | `http://localhost:8080/swagger-ui/index.html` |
 | OpenAPI JSON (코드 생성용) | `http://localhost:8080/v3/api-docs` |
 

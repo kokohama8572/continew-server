@@ -6,6 +6,7 @@
 
 - `Dockerfile`: 빌드(JDK 21) → 실행(JRE 21) 2단계. non-root 사용자로 실행합니다.
 - `PORT` 환경 변수를 읽습니다(없으면 8080). 호스팅이 포트를 정해 주는 방식에 맞습니다.
+- 서버는 기본으로 **이 컴퓨터(127.0.0.1)에서만** 접속됩니다. Docker 이미지는 `SERVER_ADDRESS=0.0.0.0`으로 열어 두므로 호스팅에서는 따로 설정할 필요가 없습니다.
 - 상태 확인 주소: `/actuator/health`
 - 프록시 뒤의 `X-Forwarded-*` 헤더를 읽습니다.
 - CORS는 기본이 **닫힘**입니다. 환경 변수로 허용할 프론트 주소를 넣어야 열립니다(4번).
@@ -27,6 +28,7 @@ docker run --rm -p 8080:8080 continew-server
 | `GEMINI_API_KEY` | `ai`일 때 | Google AI Studio에서 발급한 키. **호스팅의 비밀 값(secret) 항목에 넣고, 저장소에 올리지 마세요.** 없으면 서버가 시작을 거부합니다 |
 | `CONTINEW_CORS_ALLOWED_ORIGINS` | 웹 프론트가 다른 주소일 때 | 허용할 프론트 주소. 쉼표로 여러 개. 예: `https://continew-web.vercel.app` |
 | `PORT` | | 호스팅이 자동으로 넣어 줍니다. 직접 설정하지 않아도 됩니다 |
+| `SERVER_ADDRESS` | | 서버가 듣는 주소. 기본 `127.0.0.1`(이 컴퓨터만). 폰 등 다른 기기에서 접속하려면 `0.0.0.0`. Docker 이미지는 이미 `0.0.0.0` |
 | `CONTINEW_SUMMARY_DAILY_LIMIT` | | 설치당 하루 요약 횟수(기본 20) |
 | `CONTINEW_SUMMARY_AI_GEMINI_MODEL` | | 기본 `gemini-3.5-flash-lite` |
 
